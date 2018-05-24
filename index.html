@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>MY APP</title>
+  <!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script> -->
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+  <form id="main-form">
+    <input type="text" placeholder="first name" name="firstName">
+    <input type="text" placeholder="last name" name="lastName">
+    <!-- <input type="text" placeholder="" name="lastname"> -->
+    <select name="title">
+      <option value="" disabled selected>-Select Title-</option>
+      <option value="Partner/Counsel">Partner/Counsel</option>
+      <option value="Associate">Associate</option>
+      <option value="Paralegal">Paralegal</option>
+      <option value="Tax Attorney">Tax Attorney</option>
+      <option value="Law Clerk">Law Clerk</option>
+    </select>
+    <select name="application" id="user-choice">
+      <option value="" disabled selected>-Select what this rate applies to-</option>
+      <option value="general" id="general">General</option>
+      <option value="client" id="client">Client</option>
+    </select>
+    <input type="text" placeholder="hourlyRate" name="hourlyRate">
+    <input type="text" placeholder="Location" name="state">
+    <div id="block-client"></div>
+    <input type="date" placeholder="Effective Date" name="effectiveDate">
+
+    <button type="submit">Submit</button>
+  </form>
+
+
+  <script type="text/javascript">
+    $(document).ready(function () {
+      console.log("ready!");
+      $("#user-choice").change(function () {
+        var userChoice = $("#user-choice").val();
+        // console.log("user choice: ", userChoice);
+        if (userChoice == "client") {
+          $("#block-client").append("<div class=input-label id=input-labels><label><b>Client Name</b> (select client\'s name from the list)</label><br><select list=browsers spellcheck=false class=select2-input  role=combobox aria-expanded=true aria-autocomplete=list aria-owns=select2-results-8  aria-activedescendant=select2-result-label-5929 name=browser id=check autocomplete=off required><span><h6 style=color:red; display: none id = text>Select from the dropdown menu</h6></span><option value= disabled selected>-Select-</option></select></div><br><div class=input-label id=input2-label><label><b>Matter Name</b> (select corresponding matter name)</label><br><select  list=matters name=matters id=matter_check autocomplete=off  required><span><h6 style=color:red; display: none id = text2>Select from the dropdown menu</h6></span><option value= disabled selected>-Select-</option></select></div><br><div ><b id=user_check style=color:red></b></div>")
+          var ajax = new XMLHttpRequest();
+          ajax.onload = getAllClients;
+          ajax.onerror = errorGetAllClients;
+          ajax.open("GET", "https://secure.bill4time.com/b4t-api/abe09ac1-8cd2-414b-8c47-b6b4718ab47f/v1/clients?$filter=status eq 'Active'&$orderby=clientName", true);
+          ajax.send();
+        }
+        else {
+          $("#block-client").empty();
+        }
+      })
+
+      $("#main-form").submit(function (event) {
+        event.preventDefault();
+        console.log("i am submitting");
+        console.log("this ", this);
+        $.ajax({
+          type: "POST",
+          url: "http://localhost:3000/attorney",
+          data: $("#main-form").serialize(),
+          success: function (response) { console.log("response ", response) },
+          dataType: "json"
+        });
+        // $.get("http://localhost:3000/attorney-rates").then(function(response){
+        //   console.log("response ", response);
+      })
+      // })
+    });
+    // var ajax = new XMLHttpRequest();
+    // ajax.onload = getAllClients;
+    // ajax.onerror = errorGetAllClients;
+    // ajax.open("GET", "https://secure.bill4time.com/b4t-api/abe09ac1-8cd2-414b-8c47-b6b4718ab47f/v1/clients?$filter=status eq 'Active'&$orderby=clientName", true);
+    // ajax.send();
+
+    function getAllClients() {
+      // console.log("response:", this); 
+      var json = JSON.parse(this.responseText);
+      var data = json.data
+
+      var attorney = document.getElementById("user_check");
+      attorney.innerHTML = "";
+      // console.log('Clientdata:',data);
+      // console.log('length:', data.length);
+      for (var i = 0; i < data.length; i++) {
+        var z = document.createElement('option');
+        z.innerHTML = data[i].clientName;
+        z.setAttribute("value", data[i].id);
+        // console.log('accolades', $('#block-client > #check'));
+        $('#block-client > #input-labels > #check')[0].append(z);
+      }
+      $(document).on('focusout', '#check', matchInputWithClientList);
+      function matchInputWithClientList() {
+        var input = $('#check').val();
+        // console.log("input is: ", input);
+        if (!input) {
+          $('#text').show();
+        }
+        else {
+          $('#text').hide();
+        }
+      }
+
+      if (this.status == 200) {
+
+      } else {
+
+      }
+    }
+
+    function errorGetAllClients(e) {
+      console.log(this);
+      console.error(e);
+    }
+
+    $(document).on('change', '#matter_check', function (e) {
+      console.log("target element:", e.target);
+      var thisText = $(this)[0].selectedOptions[0];
+      console.log("Where were you?: ", $(e));
+      console.log("This is: ", this);
+      $('#matterSelected').remove();
+      // console.log('are you working???');
+      var matterSelected = $('#matter_check').val();
+      var w = document.createElement('input');
+      w.setAttribute("value", matterSelected);
+      w.setAttribute("id", 'matterSelected');
+      w.setAttribute("name", 'name');
+      $("#main-form")[0].appendChild(w);
+      $(w).hide();
+      console.log('this is me', matterSelected);
+    })
+
+    $(document).on('change', '#block-client > #input-labels > #check', function () {
+      $('#block-client > #input2-label > #matter_check option').eq(0).prop('selected', true).trigger('change');
+      $('#clientSelected').remove();
+      var clientSelected = $('#check option:selected').text();
+      var x = document.createElement('input');
+      x.setAttribute("value", clientSelected);
+      x.setAttribute("id", 'clientSelected');
+      x.setAttribute("name", 'clientName');
+      $("#main-form")[0].appendChild(x);
+      $(x).hide();
+
+      // empty matter check input
+      document.getElementById('user_check').value = '';
+      document.getElementById('matter_check').value = '';
+      var input = $("#check").val();
+      // console.log("input: ", input);
+      var ajax1 = new XMLHttpRequest();
+      ajax1.onload = getAllMatters;
+      ajax1.onerror = errorGetAllMatters;
+      var url = "https://secure.bill4time.com/b4t-api/abe09ac1-8cd2-414b-8c47-b6b4718ab47f/v1/projects?$filter=status eq 'Open' AND clientId eq " + input;
+      ajax1.open("GET", url, true);
+      ajax1.send();
+
+      function getAllMatters() {
+        // console.log(this); 
+        var json = JSON.parse(this.responseText);
+        var data = json.data;
+
+
+        // empty matters element
+        var matters = document.getElementById("matter_check")
+        matters.innerHTML = "";
+
+        for (var i = 0; i < json.data.length; i++) {
+          var y = document.createElement('option');
+          var value = data[i].id + "-" + data[i].projectName;
+          var userID = data[0].assignedTo;
+          y.innerHTML = value;
+          y.value = value;
+          matters.appendChild(y);
+        }
+
+
+        // console.log("matter name selected:", $('#matter_check option:selected').text());
+        $(document).on('focusout', '#matter_check', matchInputWithMatterList)
+        function matchInputWithMatterList() {
+          var input = $('#matter_check').val();
+          //var obj = data.find(o => o.id+"-"+o.projectName === input);
+          if (!input) {
+            $('#text2').show();
+          }
+          else {
+            $('#text2').hide();
+          }
+        }
+
+        if (this.status == 200) {
+        } else {
+        }
+      }
+        function errorGetAllMatters(e) {
+        console.log(this);
+        console.error(e);
+      }
+
+
+      var ajax1 = new XMLHttpRequest();
+      ajax1.onload = getAllUsers;
+      ajax1.onerror = errorGetAllUers;
+      var url = "https://secure.bill4time.com/b4t-api/abe09ac1-8cd2-414b-8c47-b6b4718ab47f/v1/users?$filter=status eq 'Active'";
+      ajax1.open("GET", url, true);
+      ajax1.send();
+
+      function getAllUers() {
+        // console.log(this); 
+        var json = JSON.parse(this.responseText);
+        var data = json.data;
+
+
+        // empty matters element
+        var matters = document.getElementById("matter_check")
+        matters.innerHTML = "";
+
+        for (var i = 0; i < json.data.length; i++) {
+          var y = document.createElement('option');
+          var value = data[i].id + "-" + data[i].projectName;
+          var userID = data[0].assignedTo;
+          y.innerHTML = value;
+          y.value = value;
+          matters.appendChild(y);
+        }
+
+        function errorGetAllUsers(e) {
+          console.log(this);
+          console.error(e);
+        }
+      }
+    });    
+  </script>
+
+
+</body>
+</html>
